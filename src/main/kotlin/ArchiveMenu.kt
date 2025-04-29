@@ -1,56 +1,30 @@
-class Archive(override val name: String): ItemHasName {
+class Archive(override val name: String): MenuScreen() {
 
-    var notes: MutableList<Note> = mutableListOf()
-    val type: String = "Создать заметку"
-
-    fun addNote() {
-        val inputName = getInputCheckNotEmpty("Введите название заметки")
-
-        val inputText = getInputCheckNotEmpty("Введите текст заметки")
-
-        notes.add(Note(inputName, inputText))
-    }
+    private var notesList: MutableList<Note> = mutableListOf()
+    override val menuTitle = "Меню архива \"${name}\":"
 
     override fun open() {
-        val menuTitle = "Меню архива \"${name}\":"
-        val subtitle = "Создать заметку"
+        val command2Action: MutableList<Pair<String, () -> Boolean>> = createCommand2Actions(notesList)
 
-        val command2Action : MutableList<Pair<String, () -> Boolean>> = mutableListOf()
-
-        command2Action.add(Pair("0") { addNote(); false })
-        for ((index, note) in notes.withIndex()) {
-            command2Action.add(Pair((index + 1).toString(), { note.open(); false }))
-        }
-        command2Action.add(Pair((notes.size + 1).toString()) { true })
-
-        processApp(menuTitle, subtitle, notes, command2Action)
+        processApp(menuTitle, notesList, command2Action)
     }
 
-    /*
-    private fun processApp(
-        menuTitle: String,
-        subtitle: String,
-        command2Action: MutableList<Pair<String, () -> Boolean>>
-    ) {
-        var needExit = false
-        while (!needExit) {
+    private fun createCommand2Actions(notesList: MutableList<Note>): MutableList<Pair<String, () -> Boolean>> {
+        val command2Action: MutableList<Pair<String, () -> Boolean>> = mutableListOf()
 
-            showMenu(
-                menuTitle,
-                subtitle,
-                notes
-            )
+        command2Action.add(Pair("0") {
+            val inputName = getInputCheckNotEmpty("Введите название заметки")
+            val inputText = getInputCheckNotEmpty("Введите текст заметки")
 
-            val inputCommand = getCommand(notes, type).toString()
+            val newNote = Note(inputName, inputText)
+            notesList.add(newNote)
 
-            for ((command, action) in command2Action) {
-                if (command == inputCommand) {
-                    needExit = action()
-                    break
-                }
-            }
+            addNewCommand(command2Action, newNote)
+            false
+        })
+        // добавляем пункты с 1 по последний - открытие элементов меню и выход
+        addCommandsFromOneToLast(command2Action, notesList)
 
-        }
+        return command2Action
     }
-     */
 }

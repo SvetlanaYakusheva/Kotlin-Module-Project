@@ -1,29 +1,38 @@
 import java.util.Scanner
 
 fun main(args: Array<String>) {
-    println("Добро пожаловать в программу \"Заметки\"")
-    start()
+    println("Добро пожаловать в программу \"Заметки\"!")
+
+    val screen = MainMenu("Главный экран")
+    screen.open()
+
     println("Программа завершена. До свидания!")
 }
 
-interface ItemHasName {
-    val name: String
-    fun open()
+
+//interface ItemHasName {
+//    val name: String
+//}
+
+abstract class MenuScreen() {
+    abstract val name: String
+    abstract val menuTitle: String
+    abstract fun open()
+
 }
 
-
+//функция для обработки команды
 fun <T> processApp(
     menuTitle: String,
-    subtitle: String,
     elements: MutableList<T>,
     command2Action: MutableList<Pair<String, () -> Boolean>>
-) where T: ItemHasName {
+) where T: MenuScreen {
 
     var needExit = false
     while (!needExit) {
-        showMenu(menuTitle, subtitle, elements)
+        showMenu(menuTitle, elements)
 
-        val inputCommand = getCommand(elements, subtitle)
+        val inputCommand = getCommand(menuTitle, elements)
 
         for ((command, action) in command2Action) {
             if (command == inputCommand) {
@@ -34,18 +43,27 @@ fun <T> processApp(
     }
 }
 
-fun <T> showMenu(menuTitle: String, type: String, list: List<T>) where T: ItemHasName {
+//функция для вывода на экран элементов текущего меню
+fun <T> showMenu(menuTitle: String, list: List<T>) where T: MenuScreen {
+    println() //делаем отступ в выводе на экране
     println(menuTitle)
 
-    println("0. $type")
+    val firstItemInMenu = when (menuTitle.substring(0, 7)) {
+        "Главное" -> "Создать архив"
+        "Меню ар" -> "Создать заметку"
+        else -> "Просмотр заметки"
+    }
+    println("0. $firstItemInMenu")
     for (a in 1 .. list.size) {
         println("$a. ${list[a - 1].name}")
     }
     println("${list.size + 1}. Выход")
+
 }
 
-fun getInputCheckNotEmpty(type: String) :  String {
-    println(type)
+//функция для проверки непустого ввода в консоли
+fun getInputCheckNotEmpty(message: String) :  String {
+    println(message)
 
     var input = ""
     while (input.trim() == "") {
@@ -54,8 +72,9 @@ fun getInputCheckNotEmpty(type: String) :  String {
     return input
 }
 
-fun <T> getCommand(list: List<T>, menuName: String) : String where T: ItemHasName {
-    //проверка ввода команды
+//функция для проверки ввода команд - должна быть цифра в диапазоне элементов, указанных на экране
+fun <T> getCommand(menuTitle: String, list: List<T>) : String where T: MenuScreen {
+
     while (true) {
         val command: Int? = Scanner(System.`in`).nextLine().toIntOrNull()
         when {
@@ -64,6 +83,33 @@ fun <T> getCommand(list: List<T>, menuName: String) : String where T: ItemHasNam
             else -> return command.toString()
         }
 
-        showMenu("Выберите номер команды: ", menuName, list)
+        showMenu(menuTitle, list)
     }
+}
+// добавляем в список команд новый пункт на последнее место,
+// а предыдущий последний пункт списка команд (Выход) добавляем в конец списка
+fun <T> addNewCommand(
+    command2Action: MutableList<Pair<String, () -> Boolean>>,
+    t: T
+) where T: MenuScreen {
+
+    val lastActionIndex = command2Action.size - 1
+    val exitCommand = command2Action[lastActionIndex]
+
+    command2Action[lastActionIndex] =
+            Pair(lastActionIndex.toString()) { t.open(); false }
+    command2Action.add(Pair((lastActionIndex + 1).toString(), exitCommand.second))
+}
+//функция для заполнения списка команд с лямбдами с 1 по последний номер,
+// кроме пункта 0 - добавление нового выполняется отдельно
+fun <T> addCommandsFromOneToLast(
+    command2Action: MutableList<Pair<String, () -> Boolean>>,
+    list: List<T>
+) where T: MenuScreen {
+    // добавляем пункты с 1 по предпоследний - открытие элементов меню
+    for ((index, item) in list.withIndex()) {
+        command2Action.add(Pair((index + 1).toString()) { item.open(); false })
+    }
+    //добавляем последний пункт - команда Выход
+    command2Action.add(Pair((list.size + 1).toString()) { true })
 }
